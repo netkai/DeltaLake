@@ -1,0 +1,98 @@
+---
+ # Refer to:
+ # https://logging.apache.org/log4j/2.x/manual/async.html
+ # https://springframework.guru/asynchronous-logging-with-log4j-2/
+ # https://dzone.com/articles/asynchronous-logging-with-log4j-2
+ # https://www.youtube.com/watch?v=c90WL1o-UIk&ab_channel=DiegoPacheco
+Configuration:
+  name: com.temenos.analytics.deltaLake.log4j2.async.configuration.yaml
+  status: debug
+
+  Properties:
+    Property:
+     name: log-path
+     value: "logs"
+
+  Appenders:
+    RollingRandomAccessFile:
+      name: RollingRandomAccessFileAppender
+      fileName: ${log-path}/app_rollingRandomAccess.log
+      filePattern: "${log-path}/$${date:yyyy-MM}/app_rollingRandomAccess-%d{MM-dd-yyyy}-%i.log.gz"
+      patternLayout:
+        pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
+      policies:
+        SizeBasedTriggeringPolicy:
+          size: 1024 KB
+      defaultRollOverStrategy:
+        max: 5
+
+#    RandomAccessFile:
+#      name: RandomAccessFileAppender
+#      fileName: ${log-path}/app_async.log
+#      immediateFlush: false
+#      append: true
+#      patternLayout:
+#        pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
+
+
+    #File:
+    #  name: File
+    #  fileName: ${log-path}/app.log
+    #  PatternLayout:
+    #    pattern: "%d %p %C{1.} [%t] %m%n"
+
+#    RollingFile:
+#      - name: RollingFileAppender
+#        fileName: ${log-path}/app.log
+#        filePattern: "${log-path}/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz"
+#        PatternLayout:
+#          pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
+#        Policies:
+#          SizeBasedTriggeringPolicy:
+#            - size: 1KB
+#        DefaultRollOverStrategy:
+#          - max: 5
+
+    Console:
+      name: ConsoleAppender
+      target: SYSTEM_OUT
+      PatternLayout:
+        pattern: "[%-5level] %d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %c{1} - %msg%n"
+
+  Loggers:
+    # Built-in levels include ALL, TRACE, DEBUG, INFO, WARN, ERROR, FATAL and OFF
+    asyncLogger:
+      name: com.temenos.analytics.deltalake
+      level: debug
+      includeLocation: false
+      appenderRef:
+        - ref: RollingRandomAccessFileAppender
+#        - ref: RandomAccessFileAppender
+
+#    logger:
+#      # Name must be of the same as package or higher
+#      - name: com.temenos.analytics.kai
+#        level: debug
+#        additivity: false
+#        AppenderRef:
+#          - ref: ConsoleAppender
+#            level: warn
+##          - ref: RollingFileAppender
+##            level: debug
+#          - ref: RandomAccessFileAppender
+#            level: debug
+
+    asyncRoot:
+      level: debug
+      # Turn off includeLocation and logger's additivity for better performance of async logging
+      includeLocation: false
+      appenderRef:
+#        - ref: RollingRandomAccessFileAppender
+#        - ref: RandomAccessFileAppender
+        - ref: ConsoleAppender
+
+#    Root:
+#      level: debug
+#      AppenderRef:
+#        - ref: ConsoleAppender
+...

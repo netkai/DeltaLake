@@ -1,0 +1,54 @@
+Manifest-Version: 1.0
+Main-Class: com.temenos.analytics.deltalake.Lakehouse
+Class-Path: curator-recipes-2.13.0.jar jakarta.annotation-api-1.3.5.jar 
+ metrics-core-4.2.0.jar metrics-jmx-4.2.0.jar commons-compress-1.21.jar 
+ hk2-utils-2.6.1.jar spark-unsafe_2.12-3.2.2.jar spark-kvstore_2.12-3.2.
+ 2.jar jersey-common-2.34.jar commons-text-1.6.jar stream-2.9.6.jar py4j
+ -0.10.9.5.jar metrics-core-2.2.0.jar spark-network-shuffle_2.12-3.2.2.j
+ ar commons-codec-1.15.jar unused-1.0.0.jar minimal-json-0.9.5.jar json4
+ s-scalap_2.12-3.7.0-M11.jar logredactor-1.0.10.jar spark-launcher_2.12-
+ 3.2.2.jar scala-xml_2.12-1.2.0.jar metrics-graphite-4.2.0.jar metrics-j
+ son-4.2.0.jar snakeyaml-1.27.jar commons-cli-1.4.jar jackson-annotation
+ s-2.12.7.jar zookeeper-3.6.2.jar htrace-core4-4.1.0-incubating.jar guav
+ a-30.1.1-jre.jar gson-2.8.6.jar spark-network-common_2.12-3.2.2.jar ivy
+ -2.5.0.jar spark-core_2.12-3.2.2.jar jakarta.inject-2.6.1.jar scala-log
+ ging_2.12-3.9.4.jar objenesis-2.5.1.jar jersey-server-2.34.jar jsr305-3
+ .0.0.jar metrics-jvm-4.2.0.jar jakarta.ws.rs-api-2.1.6.jar xz-1.8.jar d
+ isruptor-3.4.4.jar jersey-container-servlet-core-2.34.jar jersey-hk2-2.
+ 34.jar kafka-avro-serializer-7.2.1.jar error_prone_annotations-2.5.1.ja
+ r curator-client-2.13.0.jar j2objc-annotations-1.3.jar jackson-dataform
+ at-yaml-2.12.7.jar kafka-server-common-3.2.1.jar scala-library-2.12.14.
+ jar jackson-core-asl-1.9.13.jar jakarta.servlet-api-4.0.3.jar commons-m
+ ath3-3.4.1.jar spark-streaming-kafka-0-10_2.12-3.2.2.jar hadoop-client-
+ api-3.3.1.jar spark-token-provider-kafka-0-10_2.12-3.2.2.jar aopallianc
+ e-repackaged-2.6.1.jar activation-1.1.1.jar commons-net-3.1.jar argpars
+ e4j-0.7.0.jar leveldbjni-all-1.8.jar chill-java-0.10.0.jar logredactor-
+ metrics-1.0.10.jar avro-mapred-1.10.2.jar javassist-3.25.0-GA.jar json4
+ s-jackson_2.12-3.7.0-M11.jar kafka-storage-api-3.2.1.jar antlr4-runtime
+ -4.8.jar log4j-core-2.17.1.jar RoaringBitmap-0.9.0.jar spark-tags_2.12-
+ 3.2.2.jar json4s-ast_2.12-3.7.0-M11.jar listenablefuture-9999.0-empty-t
+ o-avoid-conflict-with-guava.jar delta-storage-2.0.0.jar scala-reflect-2
+ .12.15.jar chill_2.12-0.10.0.jar paranamer-2.8.jar commons-lang3-3.12.0
+ .jar common-utils-7.2.1.jar snappy-java-1.1.8.4.jar kafka-storage-3.2.1
+ .jar scala-java8-compat_2.12-1.0.2.jar tink-1.6.0.jar commons-io-2.8.0.
+ jar re2j-1.6.jar jackson-dataformat-csv-2.12.6.jar slf4j-log4j12-1.7.30
+ .jar checker-qual-3.8.0.jar zstd-jni-1.5.0-4.jar hadoop-client-runtime-
+ 3.3.1.jar minlog-1.3.0.jar jopt-simple-5.0.4.jar scala-collection-compa
+ t_2.12-2.6.0.jar zookeeper-jute-3.6.2.jar lz4-java-1.7.1.jar jackson-co
+ re-2.12.7.jar netty-all-4.1.68.Final.jar jackson-module-scala_2.12-2.12
+ .3.jar oro-2.0.8.jar curator-framework-2.13.0.jar shims-0.9.0.jar pyrol
+ ite-4.30.jar kafka-schema-serializer-7.2.1.jar jose4j-0.7.9.jar jakarta
+ .validation-api-2.0.2.jar kryo-shaded-4.0.2.jar xbean-asm9-shaded-4.20.
+ jar commons-collections-3.2.2.jar commons_2.12-1.0.0.jar jul-to-slf4j-1
+ .7.30.jar log4j-api-2.17.1.jar delta-core_2.12-2.0.0.jar osgi-resource-
+ locator-1.0.3.jar jersey-container-servlet-2.34.jar commons-logging-1.1
+ .3.jar protobuf-java-2.5.0.jar jersey-client-2.34.jar audience-annotati
+ ons-0.5.0.jar log4j-1.2.17.jar spark-avro_2.12-3.2.1.jar kafka-clients-
+ 2.8.1.jar kafka-metadata-3.2.1.jar kafka-raft-3.2.1.jar swagger-annotat
+ ions-2.1.10.jar slf4j-api-1.7.30.jar hk2-api-2.6.1.jar kafka_2.12-3.2.1
+ .jar abris_2.12-6.3.0.jar hk2-locator-2.6.1.jar jackson-datatype-jdk8-2
+ .12.6.jar commons-crypto-1.1.0.jar kafka-schema-registry-client-7.2.1.j
+ ar avro-ipc-1.10.2.jar failureaccess-1.0.1.jar compress-lzf-1.0.3.jar c
+ ommons-lang-2.6.jar jackson-databind-2.12.7.jar jcl-over-slf4j-1.7.30.j
+ ar avro-1.11.1.jar json4s-core_2.12-3.7.0-M11.jar
+
