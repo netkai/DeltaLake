@@ -1,11 +1,14 @@
 package com.temenos.analytics.deltalake;
 
+import io.delta.tables.DeltaColumnBuilder;
 import io.delta.tables.DeltaTable;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.*;
 import org.apache.spark.sql.SparkSession;
 
 import java.io.File;
@@ -31,11 +34,12 @@ public class Lakehouse {
         String lakehouseDir = FilenameUtils.separatorsToSystem(spark.conf().get("spark.sql.warehouse.dir"));
         lakehouseDir = lakehouseDir.replaceFirst("file:\\\\", "");
 
+        spark.sql("SHOW DATABASES").show();
         spark.sql("SHOW TABLES").show(10);
 
         String tableName = "employee";
 
-        // 1. CREATING SCHEMA (/DATABASE/NAMESPACE)
+         // 1. CREATING SCHEMA (/DATABASE/NAMESPACE)
         String sqlDropDb = "DROP SCHEMA IF EXISTS demo";
         spark.sql(sqlDropDb);
 
@@ -97,6 +101,59 @@ public class Lakehouse {
         spark.sql(sqlInsert);
         spark.sql("SELECT * FROM demo." + tableName).show(10);
 
+        // UPSERT
+        spark.sql("DROP TABLE IF EXISTS demo.merge_src");
+        spark.sql("DROP TABLE IF EXISTS demo.merge_tgt");
+
+        spark.sql("CREATE OR REPLACE TABLE demo.merge_tgt (ID INT, NAME STRING, QTY INT) USING DELTA");
+        spark.sql("INSERT INTO demo.merge_tgt (ID, NAME, QTY) VALUES (1, 'A', 1), (2, 'B', 2), (3, 'C', 3)");
+        spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
+
+        spark.sql("CREATE OR REPLACE TABLE demo.merge_src (ID INT, NAME STRING, QTY INT) USING DELTA");
+        spark.sql("INSERT INTO demo.merge_src (ID, NAME, QTY) VALUES (1, 'AA', 11), (4, 'D', 4), (5, 'E', 5)");
+        spark.sql("SELECT * FROM demo.merge_src ORDER BY ID").show();
+
+        String sqlMerge =
+                "MERGE INTO demo.merge_tgt tgt " +
+                "USING demo.merge_src src " +
+                "ON tgt.ID = src.ID " +
+                "WHEN MATCHED THEN UPDATE SET NAME = src.NAME, QTY = src.QTY " +
+                "WHEN NOT MATCHED THEN INSERT (ID, NAME, QTY) VALUES (src.ID, src.NAME, src.QTY)";
+        spark.sql(sqlMerge);
+        spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
+
+        // DELETE
+        spark.sql("DELETE FROM demo.merge_tgt WHERE ID = 5");
+        spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
+
+        spark.sql("DROP TABLE IF EXISTS demo.merge_src");
+        spark.sql("DROP TABLE IF EXISTS demo.merge_tgt");
+
+        // TIME TRAVEL
+
+        spark.sql("DESCRIBE HISTORY demo." + tableName).show();
+        Dataset<Row> dfHistory = spark.sql("DESCRIBE HISTORY demo." + tableName).toDF();
+        dfHistory.selectExpr("max(version) as maxVersion", "max(timestamp) as maxTimestamp").show();
+        spark.read().format("delta")
+                .option("versionAsOf", "0")
+                .load("C:\\TemenosWork\\2022\\Lakehouse\\DeltaLake\\spark-warehouse\\demo.db\\employee")
+                .show();
+
+        spark.read().format("delta")
+                .option("versionAsOf", "1")
+                .load("C:\\TemenosWork\\2022\\Lakehouse\\DeltaLake\\spark-warehouse\\demo.db\\employee")
+                .show();
+
+        // Create table using DataFrameWriter v2 API
+        Dataset<Row> df = spark.sql("SELECT * FROM demo." + tableName).toDF();
+        df.write()
+            .format("delta")
+            .mode("overwrite")
+            .partitionBy("StateProvinceName", "City")
+            .saveAsTable("demo.anotherEmp");
+        spark.sql("SELECT * FROM demo.anotherEmp").show();
+
+        // Unmanaged, external or path-based
         sqlDropDb = "DROP DATABASE IF EXISTS demo_um";
         spark.sql(sqlDropDb);
 
@@ -138,7 +195,7 @@ public class Lakehouse {
 
         spark.sql("SELECT * FROM demo_um." + tableName + "2").show(10);
 
-        // USING JAVA API
+        // Using DataTableBuilder API, not SQL
         spark.sql("DROP TABLE IF EXISTS default.employee_java");
 
         /* Deleting directory in Windows. Use different methods if on AWS, Azure or GCP */
@@ -156,12 +213,20 @@ public class Lakehouse {
         String sqlCreate = "CREATE TABLE default.employee_java (EmployeeID INT) USING DELTA";
         spark.sql(sqlCreate);
 
-        DeltaTable.createOrReplace(spark)
+        DeltaTable
+                .createOrReplace(spark)
                 .tableName("default.employee_java")
                 .partitionedBy("StateProvinceName")
-                .comment("table created by path; supposed being outside of the hive metastore but...")
+                .comment("table created by DataTableBuilder API")
                 .addColumn("EmployeeID", "INT", false)
                 .addColumn("StateProvinceName", "String", false)
+                .addColumn(
+                        DeltaTable.columnBuilder("EmpID_Plus_1000")
+                            .dataType("INT")
+                            .generatedAlwaysAs("EmployeeID + 1000")
+                            .comment("comments or no comments?")
+                            .build()
+                )
                 .execute();
         spark.sql("SELECT * FROM default.employee_java").show();
         spark.sql("INSERT INTO default.employee_java (EmployeeID, StateProvinceName) VALUES (1, 'BC'), (2, 'AB'), (3, 'QC')");

@@ -1,3 +1,0 @@
-{"protocol":{"minReaderVersion":1,"minWriterVersion":2}}
-{"metaData":{"id":"cbfda9e6-b1f0-4b18-8bb1-a0bb2706f02b","format":{"provider":"parquet","options":{}},"schemaString":"{\"type\":\"struct\",\"fields\":[{\"name\":\"EmployeeID\",\"type\":\"integer\",\"nullable\":true,\"metadata\":{}}]}","partitionColumns":[],"configuration":{},"createdTime":1660699973645}}
-{"commitInfo":{"timestamp":1660699973648,"operation":"CREATE OR REPLACE TABLE","operationParameters":{"isManaged":"true","description":null,"partitionBy":"[]","properties":"{}"},"isolationLevel":"Serializable","isBlindAppend":true,"operationMetrics":{},"engineInfo":"Apache-Spark/3.2.2 Delta-Lake/2.0.0","txnId":"cdfbd0c9-bf7e-4289-ad20-60b17d46c3ad"}}
