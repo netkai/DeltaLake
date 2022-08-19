@@ -14,6 +14,7 @@ import org.apache.spark.sql.SparkSession;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.List;
 
 public class Lakehouse {
     private static final Logger logger = LogManager.getLogger(Lakehouse.class);
@@ -99,7 +100,11 @@ public class Lakehouse {
             "(10, NULL, 'Michael', NULL, 'Raheem', NULL, 'Research and Development Manager', '330-555-2568', 'Work', 'michael6@adventure-works.com', 2, '1234 Seaside Way', NULL, 'San Francisco', 'California', '94109', 'United States')";
 
         spark.sql(sqlInsert);
-        spark.sql("SELECT * FROM demo." + tableName).show(10);
+        spark.sql("SELECT * FROM demo." + tableName).show(10);  // spark-delta sql
+        DeltaTable.forName(spark, "demo." + tableName)  // java api
+                .toDF()
+                .select("BusinessEntityID", "Title", "FirstName")
+                .show();
 
         // UPSERT
         spark.sql("DROP TABLE IF EXISTS demo.merge_src");
@@ -110,39 +115,61 @@ public class Lakehouse {
         spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
 
         spark.sql("CREATE OR REPLACE TABLE demo.merge_src (ID INT, NAME STRING, QTY INT) USING DELTA");
-        spark.sql("INSERT INTO demo.merge_src (ID, NAME, QTY) VALUES (1, 'AA', 11), (4, 'D', 4), (5, 'E', 5)");
+        spark.sql("INSERT INTO demo.merge_src (ID, NAME, QTY) VALUES (1, 'AA', 11), (3, 'C-deleted', 3), (4, 'D', 4), (5, 'E', 5)");
         spark.sql("SELECT * FROM demo.merge_src ORDER BY ID").show();
 
+        // can't do DELETE on NOT MATCHED condition
         String sqlMerge =
                 "MERGE INTO demo.merge_tgt tgt " +
                 "USING demo.merge_src src " +
                 "ON tgt.ID = src.ID " +
+                "WHEN MATCHED AND src.NAME RLIKE '.*-deleted\\s*$' THEN DELETE " +  /* can use LIKE but no ILIKE as of 2022-08-18 */
                 "WHEN MATCHED THEN UPDATE SET NAME = src.NAME, QTY = src.QTY " +
                 "WHEN NOT MATCHED THEN INSERT (ID, NAME, QTY) VALUES (src.ID, src.NAME, src.QTY)";
         spark.sql(sqlMerge);
         spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
 
+        // Enabling schema evolution on merge
+        spark.sql("DELETE FROM demo.merge_tgt");
+        spark.sql("INSERT INTO demo.merge_tgt (ID, NAME, QTY) VALUES (1, 'A', 1), (2, 'B', 2), (3, 'C', 3)");
+        spark.sql("DROP TABLE IF EXISTS demo.merge_src");
+        spark.sql("CREATE OR REPLACE TABLE demo.merge_src (ID INT, ALIAS STRING, QTY INT) USING DELTA");
+        spark.sql("INSERT INTO demo.merge_src (ID, ALIAS, QTY) VALUES (1, 'Ace', 11), (3, 'Si', 3), (4, 'Dee', 4)");
+        spark.conf().set("spark.databricks.delta.schema.autoMerge.enabled", "true");
+        sqlMerge =
+                "MERGE INTO demo.merge_tgt tgt " +
+                "USING demo.merge_src src ON tgt.ID = src.ID " +
+                "WHEN MATCHED THEN UPDATE SET * " +
+                "WHEN NOT MATCHED THEN INSERT *";
+        spark.sql(sqlMerge);
+        spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
+
+
         // DELETE
-        spark.sql("DELETE FROM demo.merge_tgt WHERE ID = 5");
+        spark.sql("DELETE FROM demo.merge_tgt WHERE ID > 3");
         spark.sql("SELECT * FROM demo.merge_tgt ORDER BY ID").show();
 
         spark.sql("DROP TABLE IF EXISTS demo.merge_src");
-        spark.sql("DROP TABLE IF EXISTS demo.merge_tgt");
 
         // TIME TRAVEL
 
-        spark.sql("DESCRIBE HISTORY demo." + tableName).show();
-        Dataset<Row> dfHistory = spark.sql("DESCRIBE HISTORY demo." + tableName).toDF();
+        spark.sql("DESCRIBE HISTORY demo.merge_tgt").show();
+        Dataset<Row> dfHistory = spark.sql("DESCRIBE HISTORY demo.merge_tgt").toDF();
+        List<Row> h = dfHistory.collectAsList();
+
         dfHistory.selectExpr("max(version) as maxVersion", "max(timestamp) as maxTimestamp").show();
         spark.read().format("delta")
-                .option("versionAsOf", "0")
-                .load("C:\\TemenosWork\\2022\\Lakehouse\\DeltaLake\\spark-warehouse\\demo.db\\employee")
+                .option("versionAsOf", "4")
+                .load("C:\\TemenosWork\\2022\\Lakehouse\\DeltaLake\\spark-warehouse\\demo.db\\merge_tgt")
                 .show();
 
         spark.read().format("delta")
-                .option("versionAsOf", "1")
-                .load("C:\\TemenosWork\\2022\\Lakehouse\\DeltaLake\\spark-warehouse\\demo.db\\employee")
+                .option("versionAsOf", "5")
+                .load("C:\\TemenosWork\\2022\\Lakehouse\\DeltaLake\\spark-warehouse\\demo.db\\merge_tgt")
                 .show();
+
+        spark.sql("DROP TABLE IF EXISTS demo.merge_tgt");
+
 
         // Create table using DataFrameWriter v2 API
         Dataset<Row> df = spark.sql("SELECT * FROM demo." + tableName).toDF();
