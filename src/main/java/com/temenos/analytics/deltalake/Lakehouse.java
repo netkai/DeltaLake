@@ -12,13 +12,19 @@ import org.apache.spark.sql.SparkSession;
 
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.streaming.StreamingQueryException;
+import org.apache.spark.sql.types.DateType;
+import org.apache.spark.sql.types.*;
 
+import javax.xml.crypto.Data;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static org.apache.spark.sql.functions.*;
+
 
 public class Lakehouse {
     private static final Logger logger = LogManager.getLogger(Lakehouse.class);
@@ -48,6 +54,28 @@ public class Lakehouse {
                 .set("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog");
 
         SparkSession spark = SparkSession.builder().config(sc).getOrCreate();
+
+//        Dataset<Row> dfRate = spark.readStream()
+//                .format("rate")
+//                .option("numPartitions", 2)
+//                .option("rowsPerSecond", 1)
+//                .load();
+//        try {
+//            StreamingQuery rateQry = dfRate
+////                    .withColumn("minute_at", minute(col("timestamp")))
+////                    .select("minute_at")
+//                    .writeStream()
+//                    .format("console")
+//                    .outputMode("update")
+//                    .start();
+//            rateQry.awaitTermination(30000);
+////            rateQry.processAllAvailable();
+//            rateQry.stop();
+//        } catch (TimeoutException | StreamingQueryException ex) {
+//            logger.error(ex.getMessage());
+//        }
+//
+//        spark.stop();
 
         String lakehouseDir = FilenameUtils.separatorsToSystem(spark.conf().get("spark.sql.warehouse.dir"));
         lakehouseDir = lakehouseDir.replaceFirst("file:\\\\", "");
@@ -85,7 +113,6 @@ public class Lakehouse {
             }
         }
 
-
         String sqlCreateTable = "CREATE OR REPLACE TABLE demo." + tableName +
                 " (" +
                 "BusinessEntityID INT NOT NULL, Title STRING, FirstName STRING, MiddleName STRING, " +
@@ -99,7 +126,105 @@ public class Lakehouse {
 
         spark.sql(sqlCreateTable);
 
+        String sqlInsert =
+                "INSERT INTO demo." + tableName +
+                        " (BusinessEntityID, Title, FirstName, MiddleName, LastName, Suffix, JobTitle, PhoneNumber, PhoneNumberType, EmailAddress, EmailPromotion, AddressLine1, AddressLine2, City, StateProvinceName, PostalCode, CountryRegionName) " +
+                        "VALUES " +
+                        "(1, NULL, 'Ken', 'J', 'Sánchez', NULL, 'Chief Executive Officer', '697-555-0142', 'Cell', 'ken0@adventure-works.com', 0, '4350 Minute Dr.', NULL, 'Newport Hills', 'Washington', '98006', 'United States')," +
+                        "(2, NULL, 'Terri', 'Lee', 'Duffy', NULL, 'Vice President of Engineering', '819-555-0175', 'Work', 'terri0@adventure-works.com', 1, '7559 Worth Ct.', NULL, 'Renton', 'Washington', '98055', 'United States')," +
+                        "(3, NULL, 'Roberto', NULL, 'Tamburello', NULL, 'Engineering Manager', '212-555-0187', 'Cell', 'roberto0@adventure-works.com', 0, '2137 Birchwood Dr', NULL, 'Redmond', 'Washington', '98052', 'United States')," +
+                        "(4, NULL, 'Rob', NULL, 'Walters', NULL, 'Senior Tool Designer', '612-555-0100', 'Cell', 'rob0@adventure-works.com', 0, '5678 Lakeview Blvd.', NULL, 'Minneapolis', 'Minnesota', '55402', 'United States')," +
+                        "(5, 'Ms.', 'Gail', 'A', 'Erickson', NULL, 'Design Engineer', '849-555-0139', 'Cell', 'gail0@adventure-works.com', 0, '9435 Breck Court', NULL, 'Bellevue', 'Washington', '98004', 'United States')," +
+                        "(6, 'Mr.', 'Jossef', 'H', 'Goldberg', NULL, 'Design Engineer', '122-555-0189', 'Work', 'jossef0@adventure-works.com', 0, '5670 Bel Air Dr.', NULL, 'Renton', 'Washington', '98055', 'United States')," +
+                        "(7, NULL, 'Dylan', 'A', 'Miller', NULL, 'Research and Development Manager', '181-555-0156', 'Work', 'dylan0@adventure-works.com', 2, '7048 Laurel', NULL, 'Kenmore', 'Washington', '98028', 'United States')," +
+                        "(8, NULL, 'Diane', 'L', 'Margheim', NULL, 'Research and Development Engineer', '815-555-0138', 'Cell', 'diane1@adventure-works.com', 0, '475 Santa Maria', NULL, 'Everett', 'Washington', '98201', 'United States')," +
+                        "(9, NULL, 'Gigi', '', 'Matthew', NULL, 'Research and Development Engineer', '185-555-0186', 'Cell', 'gigi0@adventure-works.com', 0, '7808 Brown St.', NULL, 'Bellevue', 'Washington', '98004', 'United States')," +
+                        "(10, NULL, 'Michael', NULL, 'Raheem', NULL, 'Research and Development Manager', '330-555-2568', 'Work', 'michael6@adventure-works.com', 2, '1234 Seaside Way', NULL, 'San Francisco', 'California', '94109', 'United States')";
+
+        spark.sql(sqlInsert);
+
+
+        spark.sql("DROP TABLE IF EXISTS demo.Birthday");
+
+        File path = new File(lakehouseDir, "demo.db\\Birthday");
+        if (path.exists()) {
+            try {
+                FileUtils.deleteDirectory(path);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        String sqlCreateTableCalledBirthday = "CREATE TABLE demo.Birthday (" +
+                "BusinessEntityID INT NOT NULL, " +
+                "LoginID STRING, Birthday DATE, MaritalStatus STRING, Gender STRING, CurrentFlag TINYINT) " +
+                "USING DELTA";
+        spark.sql(sqlCreateTableCalledBirthday);
+        sqlCreateTableCalledBirthday =
+                "INSERT INTO demo.Birthday (" +
+            "BusinessEntityID, LoginID, Birthday, MaritalStatus, Gender, CurrentFlag) " +
+                "VALUES " +
+                "(1, 'adventure-works\\ken0', CAST('1969-01-29' AS DATE), 'S', 'M', 1)" +
+                ",(2, 'adventure-works\\terri0', CAST('1971-08-01' AS DATE), 'S', 'F', 1)" +
+                ",(3, 'adventure-works\\roberto0', CAST('1974-11-12' AS DATE), 'M', 'M', 1)" +
+                ",(4, 'adventure-works\\rob0', CAST('1974-12-23' AS DATE), 'S', 'M', 1)" +
+                ",(5, 'adventure-works\\gail0', CAST('1952-09-27' AS DATE), 'M', 'F', 1)" +
+                ",(6, 'adventure-works\\jossef0', CAST('1959-03-11' AS DATE), 'M', 'M', 1)" +
+                ",(7, 'adventure-works\\dylan0', CAST('1987-02-24' AS DATE), 'M', 'M', 1)" +
+                ",(8, 'adventure-works\\diane1', CAST('1986-06-05' AS DATE), 'S', 'F', 1)" +
+                ",(9, 'adventure-works\\gigi0', CAST('1979-01-21' AS DATE), 'M', 'F', 1)" +
+                ",(10, 'adventure-works\\michael6', CAST('1984-11-30' AS DATE), 'M', 'M', 1)" +
+                ",(11, 'adventure-works\\ovidiu0', CAST('1978-01-17' AS DATE), 'S', 'M', 1)" +
+                ",(12, 'adventure-works\\thierry0', CAST('1959-07-29' AS DATE), 'M', 'M', 1)" +
+                ",(13, 'adventure-works\\janice0', CAST('1989-05-28' AS DATE), 'M', 'F', 1)" +
+                ",(14, 'adventure-works\\michael8', CAST('1979-06-16' AS DATE), 'S', 'M', 1)" +
+                ",(15, 'adventure-works\\sharon0', CAST('1961-05-02' AS DATE), 'M', 'F', 1)" +
+                ",(16, 'adventure-works\\david0', CAST('1975-03-19' AS DATE), 'S', 'M', 1)" +
+                ",(17, 'adventure-works\\kevin0', CAST('1987-05-03' AS DATE), 'S', 'M', 1)" +
+                ",(18, 'adventure-works\\john5', CAST('1978-03-06' AS DATE), 'S', 'M', 1)" +
+                ",(19, 'adventure-works\\mary2', CAST('1978-01-29' AS DATE), 'S', 'F', 1)" +
+                ",(20, 'adventure-works\\wanida0', CAST('1975-03-17' AS DATE), 'M', 'F', 1)" +
+                ",(21, 'adventure-works\\terry0', CAST('1986-02-04' AS DATE), 'M', 'M', 1)" +
+                ",(22, 'adventure-works\\sariya0', CAST('1987-05-21' AS DATE), 'S', 'M', 1)" +
+                ",(23, 'adventure-works\\mary0', CAST('1962-09-13' AS DATE), 'M', 'F', 1)" +
+                ",(24, 'adventure-works\\jill0', CAST('1979-06-18' AS DATE), 'M', 'F', 1)" +
+                ",(25, 'adventure-works\\james1', CAST('1983-01-07' AS DATE), 'S', 'M', 1)" +
+                ",(26, 'adventure-works\\peter0', CAST('1982-11-03' AS DATE), 'M', 'M', 1)" +
+                ",(27, 'adventure-works\\jo0', CAST('1956-10-08' AS DATE), 'S', 'F', 1)" +
+                ",(28, 'adventure-works\\guy1', CAST('1988-03-13' AS DATE), 'M', 'M', 1)" +
+                ",(29, 'adventure-works\\mark1', CAST('1979-09-25' AS DATE), 'S', 'M', 1)" +
+                ",(30, 'adventure-works\\britta0', CAST('1989-09-28' AS DATE), 'M', 'F', 1)";
+        spark.sql(sqlCreateTableCalledBirthday);
+
+        spark.sql("SELECT * FROM demo.Birthday ORDER BY BusinessEntityID").show(false);
+
         spark.sql("SHOW TABLES IN demo").show(10);
+
+        // Using native sql expression
+        spark.sql("select b.Birthday, e.* from demo.employee e inner join demo.birthday b on e.BusinessEntityID == b.BusinessEntityID order by e.BusinessEntityID").show(false);
+
+        // Using temporary view created after dataframe
+        Dataset<Row> dfEmp = spark.sql("select * from demo.employee");
+        dfEmp.createOrReplaceTempView("E");
+        Dataset<Row> dfBDay = spark.sql("select Birthday, BusinessEntityID from demo.birthday");
+        dfBDay.createOrReplaceTempView("B");
+        spark.sql("select * from E inner join B on E.BusinessEntityID == B.BusinessEntityID order by E.BusinessEntityID")
+             .show(30);
+
+        // Using api
+        dfEmp.as("e")
+            .join(dfBDay.withColumn("Age", (months_between(current_date(), col("Birthday"), true).divide(12).cast("INT")))
+                        .as("b"),
+                  dfEmp.col("BusinessEntityID").equalTo(dfBDay.col("BusinessEntityID")),
+                  "inner")
+            .select("b.BusinessEntityID", "b.Birthday", "b.Age", "e.*")
+            .where(dfEmp.col("BusinessEntityID").leq(10))
+//                .sort(dfBDay.col("Birthday").desc())
+            .orderBy(desc("b.Age"))
+            .show(false);
+
+        // Delete all
+        spark.sql("delete from demo.employee");
 
         // Read from Stream
 
@@ -130,7 +255,12 @@ public class Lakehouse {
         StreamingQuery streamingQuery = null;
 
         try {
-            Dataset<Row> stream = spark.readStream().format("delta").table("demo." + tableName);
+            Dataset<Row> stream = spark.readStream()
+                    .format("delta")
+//                    .option("ignoreDeletes", true)
+                    .option("ignoreChanges", true)
+                    .table("demo." + tableName);
+
             streamingQuery = stream.writeStream()
                      .outputMode("append")
                      .format("console")
@@ -149,7 +279,7 @@ public class Lakehouse {
                                 dataFrame.write()
                                         .format("json")
                                         .option("ignoreNullFields", false)
-                                        .mode(SaveMode.Append)
+                                        .mode(SaveMode.Append)  // To try other modes such as Overwrite and Ignore...
                                         .save((new File(fileJson, tableName)).getCanonicalPath());
                                 dataFrame.write()
                                         .format("csv")
@@ -170,7 +300,7 @@ public class Lakehouse {
         }
 
 
-        String sqlInsert =
+        sqlInsert =
          "INSERT INTO demo." + tableName +
            " (BusinessEntityID, Title, FirstName, MiddleName, LastName, Suffix, JobTitle, PhoneNumber, PhoneNumberType, EmailAddress, EmailPromotion, AddressLine1, AddressLine2, City, StateProvinceName, PostalCode, CountryRegionName) " +
          "VALUES " +
@@ -192,6 +322,12 @@ public class Lakehouse {
                 .toDF()
                 .select("BusinessEntityID", "Title", "FirstName")
                 .show();
+
+        spark.sql("SELECT * FROM demo." + tableName + " WHERE StateProvinceName = 'Minnesota' ORDER BY BusinessEntityID").show(false);
+//        spark.sql("DELETE FROM demo." + tableName + " WHERE StateProvinceName = 'Minnesota'");
+        spark.sql("DELETE FROM demo." + tableName + " WHERE BusinessEntityID = 4");
+        spark.sql("UPDATE demo." + tableName + " SET MiddleName = 'Alice' WHERE BusinessEntityID = 5");
+        spark.sql("SELECT * FROM demo." + tableName + " ORDER BY BusinessEntityID").show(false);
 
         // Watch for the stream append mode
         sqlInsert =
